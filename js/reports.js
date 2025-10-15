@@ -7,10 +7,15 @@ let pdfBlob = null;
 let usersList = []; // Lista de usuarios para admins
 let selectedSortOrder = ''; // Criterio de ordenamiento seleccionado
 
-// CONFIGURACIÓN
-const GOOGLE_CLIENT_ID = '799841037062-kal4vump3frc2f8d33bnp4clc9amdnng.apps.googleusercontent.com';
-const SHEET_ID = '146Q1MG0AUCnzacqrN5kBENRuiql8o07Uts-l_gimL2I';
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyN49EgjqFoE4Gwos_gnu5lM5XERnGfKejEcI-eVuxb68EgJ4wes2DAorINEZ9xVCI/exec';
+// CONFIGURACIÓN PRODUCCION
+//const GOOGLE_CLIENT_ID = '799841037062-kal4vump3frc2f8d33bnp4clc9amdnng.apps.googleusercontent.com';
+//const SHEET_ID = '146Q1MG0AUCnzacqrN5kBENRuiql8o07Uts-l_gimL2I';
+//const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyN49EgjqFoE4Gwos_gnu5lM5XERnGfKejEcI-eVuxb68EgJ4wes2DAorINEZ9xVCI/exec';
+
+//PRUEBAS
+const GOOGLE_CLIENT_ID = '154864030871-ck4l5krb7qm68kmp6a7rcq7h072ldm6g.apps.googleusercontent.com';
+const SHEET_ID = '1YLmEuA-O3Vc1fWRQ1nC_BojOUSVmzBb8QxCCsb5tQwk';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzBJRaLjii8Y8F_9XC3_n5e--R2bzDXqrfWHeFUIYn3cRct-qVHZ1VEgJEj8XKEU9Ch/exec';
 
 // Usuarios administradores
 const ADMIN_USERS = [
@@ -57,7 +62,7 @@ function showLoadingMessage(message) {
     const container = document.getElementById('signin-button-container');
     container.innerHTML = `
         <div style="text-align: center; padding: 20px; color: #666;">
-            <div style="display: inline-block; animation: spin 1s linear infinite; margin-right: 10px;">??</div>
+            <div style="display: inline-block; animation: spin 1s linear infinite; margin-right: 10px;">🔄</div>
             ${message}
         </div>
         <style>
@@ -78,13 +83,13 @@ function initializeGoogleSignInWithRetry() {
         console.log(`Intento ${attempts}/${maxAttempts} - Inicializando Google Sign-In...`);
         
         if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-            console.log('? Google Sign-In API disponible');
+            console.log('✅ Google Sign-In API disponible');
             initializeGoogleSignIn();
         } else if (attempts < maxAttempts) {
-            console.log('? Google API no disponible, reintentando...');
+            console.log('⏳ Google API no disponible, reintentando...');
             setTimeout(tryInitialize, 1000);
         } else {
-            console.error('? Google Sign-In no se pudo cargar');
+            console.error('❌ Google Sign-In no se pudo cargar');
             showAuthenticationError('No se pudo cargar el sistema de autenticación de Google');
         }
     }
@@ -94,7 +99,7 @@ function initializeGoogleSignInWithRetry() {
 
 function initializeGoogleSignIn() {
     try {
-        console.log('?? Configurando Google Sign-In...');
+        console.log('🔐 Configurando Google Sign-In...');
         
         google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
@@ -117,32 +122,32 @@ function initializeGoogleSignIn() {
             locale: "es"
         });
 
-        console.log('? Google Sign-In inicializado correctamente');
+        console.log('✅ Google Sign-In inicializado correctamente');
         setTimeout(checkBackendAvailability, 2000);
 
     } catch (error) {
-        console.error('? Error inicializando Google Sign-In:', error);
+        console.error('❌ Error inicializando Google Sign-In:', error);
         showAuthenticationError('Error configurando sistema de autenticación: ' + error.message);
     }
 }
 
 async function checkBackendAvailability() {
     try {
-        console.log('?? Verificando disponibilidad del backend...');
+        console.log('🔗 Verificando disponibilidad del backend...');
         
         const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL + '?action=test_permissions', 10000);
         
         if (response.ok) {
-            console.log('? Backend disponible');
+            console.log('✅ Backend disponible');
             showStatus('Sistema listo para su uso', 'success');
             setTimeout(() => hideStatus(), 3000);
         } else {
-            console.warn('?? Backend no responde correctamente');
+            console.warn('⚠️ Backend no responde correctamente');
             showStatus('Advertencia: Conexión con backend limitada', 'error');
         }
         
     } catch (error) {
-        console.warn('?? No se pudo verificar backend:', error.message);
+        console.warn('⚠️ No se pudo verificar backend:', error.message);
         showStatus('Advertencia: Verificación de backend falló', 'error');
     }
 }
@@ -150,7 +155,7 @@ async function checkBackendAvailability() {
 async function handleCredentialResponse(response) {
     try {
         authenticationAttempts++;
-        console.log(`?? Procesando autenticación (intento ${authenticationAttempts})...`);
+        console.log(`🔐 Procesando autenticación (intento ${authenticationAttempts})...`);
         
         if (authenticationAttempts > MAX_AUTH_ATTEMPTS) {
             showStatus('Demasiados intentos de autenticación. Recargue la página.', 'error');
@@ -163,11 +168,11 @@ async function handleCredentialResponse(response) {
             throw new Error('No se pudo procesar la información del usuario');
         }
         
-        console.log('?? Usuario detectado:', userInfo.email);
+        console.log('👤 Usuario detectado:', userInfo.email);
         
         // TODOS LOS USUARIOS VERIFICADOS PUEDEN ACCEDER
         if (!userInfo.email_verified) {
-            showStatus('? Cuenta no verificada. Use una cuenta de Gmail verificada.', 'error');
+            showStatus('❌ Cuenta no verificada. Use una cuenta de Gmail verificada.', 'error');
             return;
         }
         
@@ -185,8 +190,8 @@ async function handleCredentialResponse(response) {
         // Verificar rol en el backend
         await checkUserRole();
         
-        console.log('? Autenticación exitosa para:', currentUser.name);
-        console.log('?? Rol del usuario:', userRole);
+        console.log('✅ Autenticación exitosa para:', currentUser.name);
+        console.log('👤 Rol del usuario:', userRole);
         
         updateAuthenticationUI();
         enableForm();
@@ -207,14 +212,14 @@ async function handleCredentialResponse(response) {
         setTimeout(() => hideStatus(), 5000);
 
     } catch (error) {
-        console.error('? Error procesando credenciales:', error);
+        console.error('❌ Error procesando credenciales:', error);
         showStatus('Error en la autenticación: ' + error.message, 'error');
     }
 }
 
 async function checkUserRole() {
     try {
-        console.log('?? Verificando rol del usuario...');
+        console.log('👤 Verificando rol del usuario...');
         
         const result = await makeBackendRequest('check_user_role', {});
         
@@ -228,13 +233,13 @@ async function checkUserRole() {
             
             return result;
         } else {
-            console.warn('?? No se pudo verificar el rol, asumiendo usuario normal');
+            console.warn('👤 No se pudo verificar el rol, asumiendo usuario normal');
             userRole = 'Usuario';
             currentUser.isAdmin = false;
         }
         
     } catch (error) {
-        console.error('? Error verificando rol:', error);
+        console.error('❌ Error verificando rol:', error);
         userRole = 'Usuario';
         currentUser.isAdmin = false;
     }
@@ -242,9 +247,9 @@ async function checkUserRole() {
 
 async function loadUsersList(fechaDesde = null, fechaHasta = null) {
     try {
-        console.log('?? Cargando lista de usuarios (solo admin)...');
+        console.log('👤 Cargando lista de usuarios (solo admin)...');
         if (fechaDesde && fechaHasta) {
-            console.log(`?? Filtrando por rango: ${fechaDesde} al ${fechaHasta}`);
+            console.log(`👤 Filtrando por rango: ${fechaDesde} al ${fechaHasta}`);
         }
         
         const params = fechaDesde && fechaHasta ? {
@@ -256,7 +261,7 @@ async function loadUsersList(fechaDesde = null, fechaHasta = null) {
         
         if (result.success) {
             usersList = result.users || [];
-            console.log(`? Lista de usuarios cargada: ${usersList.length} usuarios`);
+            console.log(`✅ Lista de usuarios cargada: ${usersList.length} usuarios`);
             if (result.dateRange) {
                 console.log(`   (En rango ${result.dateRange.desde} - ${result.dateRange.hasta})`);
             }
@@ -268,7 +273,7 @@ async function loadUsersList(fechaDesde = null, fechaHasta = null) {
         }
         
     } catch (error) {
-        console.error('? Error cargando lista de usuarios:', error);
+        console.error('❌ Error cargando lista de usuarios:', error);
         usersList = [];
         updateAdminControls();
     }
@@ -350,16 +355,16 @@ async function makeBackendRequest(action, additionalData = {}) {
         ...additionalData
     };
     
-    console.log('?? Enviando solicitud al backend:', action);
+    console.log('📡 Enviando solicitud al backend:', action);
     
     try {
         const jsonpResponse = await fetchWithJSONP(GOOGLE_SCRIPT_URL, requestData);
         if (jsonpResponse && jsonpResponse.success !== undefined) {
-            console.log('? Respuesta JSONP exitosa');
+            console.log('✅ Respuesta JSONP exitosa');
             return jsonpResponse;
         }
     } catch (jsonpError) {
-        console.log('?? JSONP falló:', jsonpError.message);
+        console.log('⚠️ JSONP falló:', jsonpError.message);
     }
     
     try {
@@ -374,13 +379,13 @@ async function makeBackendRequest(action, additionalData = {}) {
         
         if (response.ok) {
             const result = await response.json();
-            console.log('? Respuesta POST exitosa');
+            console.log('✅ Respuesta POST exitosa');
             return result;
         } else {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
     } catch (fetchError) {
-        console.log('?? Fetch POST falló:', fetchError.message);
+        console.log('⚠️ Fetch POST falló:', fetchError.message);
         throw new Error('No se pudo conectar con el servidor: ' + fetchError.message);
     }
 }
@@ -484,7 +489,7 @@ function updateAuthenticationUI() {
         signinContainer.style.display = 'none';
     } else {
         authSection.classList.remove('authenticated');
-        authTitle.textContent = '?? Autenticación Requerida';
+        authTitle.textContent = '🔒 Autenticación Requerida';
         authTitle.classList.remove('authenticated');
         userInfo.classList.remove('show');
         signinContainer.style.display = 'block';
@@ -510,17 +515,17 @@ function updateFormDescription() {
     if (description && currentUser) {
         if (currentUser.isAdmin) {
             description.innerHTML = `
-                <strong>?? Modo Administrador:</strong> Puede generar reportes con todos los registros del sistema o filtrar por usuario específico.
+                <strong>👑 Modo Administrador:</strong> Puede generar reportes con todos los registros del sistema o filtrar por usuario específico.
                 <br>Seleccione el rango de fechas y los usuarios disponibles se actualizarán automáticamente.
-                <br><strong>?? Función exclusiva:</strong> Tiene acceso al modo "Solo Evidencias de Salida" para filtrar registros con links.
-                <br><strong>?? Ordenamiento por defecto:</strong> Nombre (puede cambiarlo en los controles de administrador).
+                <br><strong>🔗 Función exclusiva:</strong> Tiene acceso al modo "Solo Evidencias de Salida" para filtrar registros con links.
+                <br><strong>📋 Ordenamiento por defecto:</strong> Nombre (puede cambiarlo en los controles de administrador).
             `;
             description.style.borderLeftColor = '#ffc107';
         } else {
             description.innerHTML = `
-                <strong>?? Modo Usuario:</strong> Puede generar reportes solo con sus propios registros.
+                <strong>👤 Modo Usuario:</strong> Puede generar reportes solo con sus propios registros.
                 <br>Seleccione el rango de fechas para ver su información personal de asistencias.
-                <br><strong>?? Sus registros se ordenarán cronológicamente por fecha.</strong>
+                <br><strong>📋 Sus registros se ordenarán cronológicamente por fecha.</strong>
             `;
             description.style.borderLeftColor = '#667eea';
         }
@@ -532,12 +537,12 @@ function updateSubmitButton() {
     
     if (!isAuthenticated) {
         submitBtn.disabled = true;
-        submitBtn.textContent = '?? Autentíquese primero para generar reporte';
+        submitBtn.textContent = '👤 Autentíquese primero para generar reporte';
     } else {
         submitBtn.disabled = false;
         const buttonText = currentUser.isAdmin 
-            ? '?? Generar Reporte PDF (Todos los usuarios)'
-            : '?? Generar Mi Reporte PDF';
+            ? '📋 Generar Reporte PDF (Todos los usuarios)'
+            : '📋 Generar Mi Reporte PDF';
         submitBtn.innerHTML = buttonText;
     }
 }
@@ -550,7 +555,7 @@ function showAuthenticationError(message) {
             ${message}
             <div style="margin-top: 15px;">
                 <button onclick="location.reload()" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    ?? Recargar Página
+                    🔄 Recargar Página
                 </button>
             </div>
         </div>
@@ -624,7 +629,7 @@ async function handleDateChange() {
         const fechaHasta = document.getElementById('fecha_hasta').value;
         
         if (fechaDesde && fechaHasta) {
-            console.log('?? Fechas cambiadas, actualizando lista de usuarios...');
+            console.log('📋 Fechas cambiadas, actualizando lista de usuarios...');
             await loadUsersList(fechaDesde, fechaHasta);
         }
     }
@@ -1428,12 +1433,12 @@ function showDownloadModal(fechaDesde, fechaHasta) {
     let roleInfo = '';
     if (currentUser.isAdmin) {
         if (filtroUsuario) {
-            roleInfo = `<p><strong>?? Ámbito:</strong> Usuario específico - ${usuarioNombre}</p>`;
+            roleInfo = `<p><strong>👤 Ámbito:</strong> Usuario específico - ${usuarioNombre}</p>`;
         } else {
-            roleInfo = '<p><strong>?? Ámbito:</strong> Todos los usuarios del sistema</p>';
+            roleInfo = '<p><strong>👤 Ámbito:</strong> Todos los usuarios del sistema</p>';
         }
     } else {
-        roleInfo = '<p><strong>?? Ámbito:</strong> Solo sus registros personales</p>';
+        roleInfo = '<p><strong>👤 Ámbito:</strong> Solo sus registros personales</p>';
     }
     
     let ordenInfo = '';
@@ -1445,13 +1450,13 @@ function showDownloadModal(fechaDesde, fechaHasta) {
             'modalidad': 'Modalidad',
             'tipo_registro': 'Tipo de Registro'
         };
-        ordenInfo = `<p><strong>?? Ordenado por:</strong> ${ordenTexto[ordenarPor] || ordenarPor}</p>`;
+        ordenInfo = `<p><strong>📋 Ordenado por:</strong> ${ordenTexto[ordenarPor] || ordenarPor}</p>`;
     } else if (!currentUser.isAdmin) {
-        ordenInfo = `<p><strong>?? Ordenado por:</strong> Fecha (automático)</p>`;
+        ordenInfo = `<p><strong>📋 Ordenado por:</strong> Fecha (automático)</p>`;
     }
     
     reportInfo.innerHTML = `
-        <h4>?? Resumen del Reporte</h4>
+        <h4>📊 Resumen del Reporte</h4>
         <p><strong>Período:</strong> ${fechaDesde} al ${fechaHasta}</p>
         <p><strong>Total de registros:</strong> ${attendanceData.length}</p>
         ${roleInfo}
