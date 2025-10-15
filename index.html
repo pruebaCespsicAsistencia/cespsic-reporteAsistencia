@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Asistencias - CESPSIC</title>
+    
+    <!-- Google Sign-In API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <meta name="google-signin-client_id" content="799841037062-kal4vump3frc2f8d33bnp4clc9amdnng.apps.googleusercontent.com">
+    
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Verificacion de carga de scripts -->
+    <script>
+        window.addEventListener('load', function() {
+            console.log('Verificando scripts cargados:');
+            console.log('- Google API:', typeof google !== 'undefined' ? 'Cargado' : 'No cargado');
+            console.log('- jsPDF:', typeof window.jspdf !== 'undefined' ? 'Cargado' : 'No cargado');
+            console.log('- Script principal:', typeof initializeApp !== 'undefined' ? 'Cargado' : 'NO CARGADO - REVISAR js/reports.js');
+        });
+    </script>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logos">
+                <img src="https://lh3.googleusercontent.com/d/19ybSSXzb1ko_982HrRi7Kd7dPfN8Peuc" alt="UAS" class="logo">
+                <img src="https://lh3.googleusercontent.com/d/12tYxfzWgy3BVYjadXOEKlX5-uSsxIrBt" alt="CESPSIC" class="logo">
+                <img src="https://lh3.googleusercontent.com/d/1tR9QzPGbydb_qjDkZOKsoNU6_xIBGQP2" alt="Facultad de Psicologia" class="logo">
+            </div>
+            <h1>Generador de Reportes de Asistencia - Centro de Servicios Psicologicos (CESPSIC) v.3.3</h1>
+        </div>
+
+        <!-- Seccion de Autenticacion -->
+        <div class="auth-section" id="auth-section">
+            <div class="auth-title" id="auth-title">
+                🔐 Autenticación Requerida
+            </div>
+            
+            <div class="auth-warning">
+                ℹ️ Sistema Multi-Rol: Todos los usuarios pueden acceder
+            </div>
+            
+            <!-- Informacion del usuario autenticado -->
+            <div class="user-info" id="user-info">
+                <img id="user-avatar" class="user-avatar" src="" alt="Avatar">
+                <div class="user-email" id="user-email"></div>
+                <div class="user-name" id="user-name"></div>
+                <div class="user-status" id="user-status">✅ Usuario Autorizado</div>
+                <button class="signout-btn" onclick="signOut()">🚪 Cerrar Sesion</button>
+            </div>
+            
+            <!-- Boton de inicio de sesion con Google -->
+            <div id="signin-button-container">
+                <!-- El boton se genera automaticamente por Google Sign-In API -->
+            </div>
+            
+            <div class="auth-info" style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 8px; font-size: 14px; color: #1565c0;">
+                ℹ️ <strong>Nota:</strong> Este sistema tiene dos tipos de acceso:
+                <br>👑 <strong>Administradores:</strong> Pueden ver todos los registros del sistema
+                <br>👤 <strong>Usuarios:</strong> Solo pueden ver sus propios registros de asistencia
+                <br><br>✅ Todos los usuarios con cuenta de Gmail verificada pueden autenticarse
+            </div>
+        </div>
+
+        <!-- Formulario de Reporte (inicialmente deshabilitado) -->
+        <div class="form-overlay" id="form-container">
+            <form id="reportForm">
+                <div class="form-section">
+                    <h2>📋 Generar Reporte de Asistencias</h2>
+                    <p class="form-description">
+                        Seleccione el rango de fechas para generar el reporte PDF con las asistencias registradas.
+                    </p>
+                </div>
+
+                <!-- CONTROLES SOLO PARA ADMINISTRADORES -->
+                <div id="admin-controls" style="display: none;">
+                    <div class="form-section" style="background: #fff9e6; border-left: 4px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="color: #856404; font-size: 1.1em; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                            👑 Controles de Administrador
+                        </h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="filtro_usuario">Filtrar por usuario específico:</label>
+                                <select id="filtro_usuario" name="filtro_usuario">
+                                    <option value="">Todos los usuarios</option>
+                                    <!-- Se llenará dinámicamente con JavaScript -->
+                                </select>
+                                <small style="color: #666; display: block; margin-top: 5px;">
+                                    💡 Dejar en "Todos" para ver registros de todos los usuarios
+                                </small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="ordenar_por">Ordenar información por:</label>
+                                <select id="ordenar_por" name="ordenar_por">
+                                    <option value="nombre" selected>Nombre</option>
+                                    <option value="fecha">Fecha</option>
+                                    <option value="tipo_estudiante">Tipo de Estudiante</option>
+                                    <option value="modalidad">Modalidad</option>
+                                    <option value="tipo_registro">Tipo de Registro</option>
+                                </select>
+                                <small style="color: #666; display: block; margin-top: 5px;">
+                                    📊 El orden de las columnas del PDF se ajustará según su elección
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fecha_desde">Fecha Desde <span class="required">*</span></label>
+                            <input type="date" id="fecha_desde" name="fecha_desde" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="fecha_hasta">Fecha Hasta <span class="required">*</span></label>
+                            <input type="date" id="fecha_hasta" name="fecha_hasta" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="incluir_campos">Campos a incluir en el reporte:</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="incluir_basicos" name="incluir_campos[]" value="basicos" checked disabled>
+                                <label for="incluir_basicos">Informacion basica (Nombre, Tipo estudiante, Modalidad, Fecha, Hora, Tipo registro)</label>
+                            </div>
+                            
+                            <!-- Checkbox especial para Evidencias -->
+                            <!-- Checkbox especial para Evidencias (SOLO ADMINISTRADORES) -->
+                            <div id="admin-evidencias-control" style="display: none;">
+                                <div class="checkbox-item checkbox-evidencias">
+                                    <input type="checkbox" id="incluir_evidencias_solo" name="incluir_campos[]" value="evidencias_solo" onchange="handleEvidenciasChange(this)">
+                                    <label for="incluir_evidencias_solo">
+                                        <strong>🔒 Solo Evidencias de Salida (Admin)</strong>
+                                        <br><small style="color: #666;">Filtra únicamente registros de SALIDA con links clickeables.</small>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <hr style="border: none; border-top: 1px solid #eee; margin: 15px 0;">
+                            
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="incluir_intervenciones" name="incluir_campos[]" value="intervenciones" checked>
+                                <label for="incluir_intervenciones">Intervenciones psicologicas y grupos de edad</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="incluir_actividades" name="incluir_campos[]" value="actividades" checked>
+                                <label for="incluir_actividades">Actividades realizadas y detalles</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="incluir_evidencias" name="incluir_campos[]" value="evidencias" checked>
+                                <label for="incluir_evidencias">Total de evidencias</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="incluir_comentarios" name="incluir_campos[]" value="comentarios">
+                                <label for="incluir_comentarios">Comentarios adicionales</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="incluir_permisos" name="incluir_campos[]" value="permisos">
+                                <label for="incluir_permisos">Detalles de permisos y otros registros</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="filtro_tipo">Filtrar por tipo de estudiante (opcional):</label>
+                        <select id="filtro_tipo" name="filtro_tipo">
+                            <option value="">Todos los tipos</option>
+                            <option value="estancia_profesional">Estancia Profesional</option>
+                            <option value="practicas_supervisadas">Practicas Supervisadas</option>
+                            <option value="servicio_social">Servicio Social</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="filtro_modalidad">Filtrar por modalidad (opcional):</label>
+                        <select id="filtro_modalidad" name="filtro_modalidad">
+                            <option value="">Todas las modalidades</option>
+                            <option value="presencial">Presencial</option>
+                            <option value="virtual">Virtual</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="status" id="status"></div>
+                
+                <button type="submit" class="submit-btn" id="submit_btn" disabled>
+                    🔒 Autentíquese primero para generar reporte
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para descarga -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>✅ Reporte Generado Exitosamente</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="report-info" id="report-info">
+                    <!-- Se llenara dinamicamente -->
+                </div>
+                <div class="modal-actions">
+                    <button class="download-btn" id="download-btn">
+                        ⬇️ Descargar Reporte PDF
+                    </button>
+                    <button class="modal-btn-secondary" onclick="closeModal()">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Funcion global para manejar el checkbox de evidencias
+        function handleEvidenciasChange(checkbox) {
+            if (typeof window.handleEvidenciasChange === 'function') {
+                window.handleEvidenciasChange(checkbox);
+            }
+        }
+    </script>
+    <script src="js/reports.js"></script>
+</body>
+</html>
