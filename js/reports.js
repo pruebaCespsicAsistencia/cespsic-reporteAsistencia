@@ -481,7 +481,7 @@ function updateAuthenticationUI() {
         
         // Actualizar status con el rol
         const userStatus = document.getElementById('user-status');
-        userStatus.textContent = currentUser.isAdmin ? '?? Administrador' : '? Usuario Autorizado';
+        userStatus.textContent = currentUser.isAdmin ? '👑 Administrador' : '👤 Usuario Autorizado';
         userStatus.style.background = currentUser.isAdmin ? '#fff3cd' : '#d4edda';
         userStatus.style.color = currentUser.isAdmin ? '#856404' : '#155724';
         
