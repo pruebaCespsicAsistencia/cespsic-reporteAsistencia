@@ -470,7 +470,7 @@ function updateAuthenticationUI() {
         authSection.classList.add('authenticated');
         
         // Título diferente según el rol
-        const roleIcon = currentUser.isAdmin ? '??' : '?';
+        const roleIcon = currentUser.isAdmin ? '👑' : '👤';
         const roleText = currentUser.isAdmin ? 'Administrador' : 'Usuario';
         authTitle.textContent = `${roleIcon} Acceso Autorizado - ${roleText}`;
         authTitle.classList.add('authenticated');
