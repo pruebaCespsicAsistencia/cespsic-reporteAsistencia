@@ -642,3 +642,283 @@ input:disabled {
         min-width: 80px;
     }
 }
+/* ========================================
+   ESTILOS ADICIONALES PARA NUEVOS REPORTES
+   Agregar al final de styles.css
+   ======================================== */
+
+/* Sección de reportes especiales (solo admin) */
+.report-type-section {
+    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+    border: 2px solid #4caf50;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.report-type-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.report-buttons-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.special-report-btn {
+    background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+    color: white;
+    border: none;
+    padding: 15px 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 5px;
+    box-shadow: 0 4px 6px rgba(76, 175, 80, 0.3);
+}
+
+.special-report-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+}
+
+.special-report-btn:active {
+    transform: translateY(0);
+}
+
+.special-report-btn small {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.9;
+    line-height: 1.3;
+}
+
+.excel-btn {
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    box-shadow: 0 4px 6px rgba(25, 118, 210, 0.3);
+}
+
+.excel-btn:hover {
+    box-shadow: 0 6px 12px rgba(25, 118, 210, 0.4);
+}
+
+/* Responsive para botones de reportes */
+@media (max-width: 768px) {
+    .report-buttons-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .special-report-btn {
+        padding: 12px 15px;
+        font-size: 14px;
+    }
+    
+    .special-report-btn small {
+        font-size: 11px;
+    }
+}
+
+/* Mejoras al modal para diferentes tipos de archivos */
+.modal-body .report-info h4 {
+    color: #2e7d32;
+    font-size: 1.2em;
+    margin-bottom: 15px;
+}
+
+.modal-body .report-info p strong {
+    color: #1976d2;
+}
+
+/* Indicador de tipo de archivo */
+.file-type-indicator {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-left: 10px;
+}
+
+.file-type-pdf {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.file-type-excel {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+/* Animación de carga mejorada */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.status.loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Mejoras visuales para sección de administrador */
+.admin-section .form-row {
+    background: rgba(255, 255, 255, 0.6);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.report-type-section .admin-info {
+    font-size: 0.9em;
+    line-height: 1.6;
+}
+
+/* Badge de versión */
+.version-badge {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(102, 126, 234, 0.9);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.75em;
+    font-weight: 600;
+    z-index: 999;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Estilos para indicador de Firebase */
+.firebase-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4caf50;
+    margin-left: 5px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.firebase-indicator.disconnected {
+    background: #f44336;
+}
+
+/* Mejoras a la tabla de asistencias */
+.attendance-table tbody tr:nth-child(even) {
+    background: #f8f9fa;
+}
+
+.attendance-table tbody tr:hover {
+    background: #e3f2fd;
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+}
+
+/* Scroll suave para tablas largas */
+.attendance-list {
+    max-height: 600px;
+    overflow-y: auto;
+    border-radius: 10px;
+}
+
+.attendance-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.attendance-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.attendance-list::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+}
+
+.attendance-list::-webkit-scrollbar-thumb:hover {
+    background: #764ba2;
+}
+
+/* Tooltips para botones */
+.special-report-btn::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    margin-bottom: 5px;
+}
+
+.special-report-btn:hover::before {
+    opacity: 1;
+}
+
+/* Estados de loading para botones especiales */
+.special-report-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.special-report-btn.loading {
+    position: relative;
+}
+
+.special-report-btn.loading::after {
+    content: '⏳';
+    position: absolute;
+    right: 10px;
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive adicional */
+@media (max-width: 480px) {
+    .report-type-section {
+        padding: 15px;
+    }
+    
+    .report-buttons-container {
+        gap: 10px;
+    }
+    
+    .special-report-btn {
+        padding: 10px;
+        font-size: 13px;
+    }
+}
+
+/* Print styles para reportes */
+@media print {
+    .auth-section,
+    .form-overlay,
+    .modal-overlay,
+    .version-badge {
+        display: none !important;
+    }
+    
+    .container {
+        box-shadow: none;
+        padding: 0;
+    }
+}
