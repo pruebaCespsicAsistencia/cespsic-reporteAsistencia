@@ -1145,42 +1145,156 @@ async function handleExportExcel(e) {
 }
 
 async function generateExcelExport(fechaDesde, fechaHasta) {
-    // Usar librería XLSX
+    // Verificar librería XLSX
     const XLSX = window.XLSX;
     if (!XLSX) {
-        throw new Error('Librería XLSX no cargada');
+        throw new Error('Librería XLSX no cargada. Verifica que esté incluida en index.html');
     }
     
-    // Preparar datos en el orden especificado
+    console.log('📊 Generando Excel...');
+    console.log('Registros a exportar:', attendanceData.length);
+    
+    // Preparar datos
     const excelData = prepareExcelData();
+    
+    if (excelData.length === 0) {
+        throw new Error('No hay datos para exportar');
+    }
+    
+    console.log('✅ Datos preparados para Excel:', excelData.length, 'filas');
     
     // Crear workbook y worksheet
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData, {
-        header: EXCEL_FIELD_ORDER.map(field => FIREBASE_FIELD_MAPPING[field])
-    });
+    const ws = XLSX.utils.json_to_sheet(excelData);
     
     // Ajustar ancho de columnas
-    const columnWidths = EXCEL_FIELD_ORDER.map(field => {
-        const headerName = FIREBASE_FIELD_MAPPING[field];
-        return {wch: Math.max(headerName.length + 2, 15)};
+    const headerNames = Object.keys(excelData[0]);
+    const columnWidths = headerNames.map(header => {
+        return { wch: Math.max(header.length + 2, 15) };
     });
     ws['!cols'] = columnWidths;
     
     // Agregar worksheet al workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Asistencias');
     
+    console.log('✅ Workbook creado');
+    
     // Generar archivo Excel
-    const wbout = XLSX.write(wb, {bookType: 'xlsx', type: 'array'});
-    pdfBlob = new Blob([wbout], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    pdfBlob = new Blob([wbout], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    
+    console.log('✅ Archivo Excel generado, tamaño:', pdfBlob.size, 'bytes');
 }
 
 function prepareExcelData() {
-    return attendanceData.map(record => {
+    console.log('📊 Preparando datos para Excel...');
+    console.log('Total registros:', attendanceData.length);
+    
+    if (attendanceData.length > 0) {
+        console.log('🔍 Ejemplo primer registro:', attendanceData[0]);
+    }
+    
+    return attendanceData.map((record, index) => {
         const excelRow = {};
         
-        EXCEL_FIELD_ORDER.forEach(fieldKey => {
-            const headerName = FIREBASE_FIELD_MAPPING[fieldKey];
+        // Orden de los 43 campos según EXCEL_FIELD_ORDER
+        const fieldOrder = [
+            'timestamp',
+            'email',
+            'googleUserId',
+            'nombreAutenticado',
+            'timestampAutenticacion',
+            'latitud',
+            'longitud',
+            'estadoUbicacion',
+            'ubicacionDetectada',
+            'direccionCompleta',
+            'precisionGPS',
+            'precisionGPSMetros',
+            'validacionUbicacion',
+            'nombre',
+            'apellidoPaterno',
+            'apellidoMaterno',
+            'tipoEstudiante',
+            'modalidad',
+            'fecha',
+            'hora',
+            'tipoRegistro',
+            'permisoDetalle',
+            'otroDetalle',
+            'intervencionesPsicologicas',
+            'ninosNinas',
+            'adolescentes',
+            'adultos',
+            'mayores60',
+            'familia',
+            'actividadesRealizadas',
+            'actividadesVariasDetalle',
+            'pruebasPsicologicasDetalle',
+            'comentariosAdicionales',
+            'totalEvidencias',
+            'nombresEvidencias',
+            'carpetaEvidencias',
+            'tipoDispositivo',
+            'esDesktop',
+            'metodoGPS',
+            'precisionRequerida',
+            'infoDispositivoJSON',
+            'versionHTML',
+            'registroId'
+        ];
+        
+        // Mapeo de nombres de campos a headers en español
+        const headerNames = {
+            'timestamp': 'Timestamp',
+            'email': 'Email',
+            'googleUserId': 'Google_User_ID',
+            'nombreAutenticado': 'Nombre_Autenticado',
+            'timestampAutenticacion': 'Timestamp_Autenticacion',
+            'latitud': 'Latitud',
+            'longitud': 'Longitud',
+            'estadoUbicacion': 'Estado_Ubicacion',
+            'ubicacionDetectada': 'Ubicacion_Detectada',
+            'direccionCompleta': 'Direccion_Completa',
+            'precisionGPS': 'Precision_GPS',
+            'precisionGPSMetros': 'Precision_GPS_Metros',
+            'validacionUbicacion': 'Validacion_Ubicacion',
+            'nombre': 'Nombre',
+            'apellidoPaterno': 'Apellido_Paterno',
+            'apellidoMaterno': 'Apellido_Materno',
+            'tipoEstudiante': 'Tipo_Estudiante',
+            'modalidad': 'Modalidad',
+            'fecha': 'Fecha',
+            'hora': 'Hora',
+            'tipoRegistro': 'Tipo_Registro',
+            'permisoDetalle': 'Permiso_Detalle',
+            'otroDetalle': 'Otro_Detalle',
+            'intervencionesPsicologicas': 'Intervenciones_Psicologicas',
+            'ninosNinas': 'Ninos_Ninas',
+            'adolescentes': 'Adolescentes',
+            'adultos': 'Adultos',
+            'mayores60': 'Mayores_60',
+            'familia': 'Familia',
+            'actividadesRealizadas': 'Actividades_Realizadas',
+            'actividadesVariasDetalle': 'Actividades_Varias_Detalle',
+            'pruebasPsicologicasDetalle': 'Pruebas_Psicologicas_Detalle',
+            'comentariosAdicionales': 'Comentarios_Adicionales',
+            'totalEvidencias': 'Total_Evidencias',
+            'nombresEvidencias': 'Nombres_Evidencias',
+            'carpetaEvidencias': 'Carpeta_Evidencias',
+            'tipoDispositivo': 'Tipo_Dispositivo',
+            'esDesktop': 'Es_Desktop',
+            'metodoGPS': 'Metodo_GPS',
+            'precisionRequerida': 'Precision_Requerida',
+            'infoDispositivoJSON': 'Info_Dispositivo_JSON',
+            'versionHTML': 'Version_HTML',
+            'registroId': 'Registro_ID'
+        };
+        
+        fieldOrder.forEach(fieldKey => {
+            const headerName = headerNames[fieldKey];
             let value = record[fieldKey];
             
             // Manejar valores especiales
@@ -1190,10 +1304,17 @@ function prepareExcelData() {
                 value = JSON.stringify(value);
             } else if (typeof value === 'boolean') {
                 value = value ? 'Sí' : 'No';
+            } else if (value instanceof Date) {
+                value = value.toISOString();
             }
             
             excelRow[headerName] = value;
         });
+        
+        // Debug del primer registro
+        if (index === 0) {
+            console.log('🔍 Primera fila Excel:', excelRow);
+        }
         
         return excelRow;
     });
