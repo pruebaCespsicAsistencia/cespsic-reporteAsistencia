@@ -18,7 +18,29 @@ function normalizeFieldNames(data) {
     const normalized = {};
     
     // Sistema
-    normalized.timestamp = data.timestamp || data.fecha_creacion || '';
+    //normalized.timestamp = data.timestamp || data.fecha_creacion || '';
+    if (data.timestamp || data.fecha_creacion) {
+        const timestampValue = data.timestamp || data.fecha_creacion;
+        
+        // Si es un Timestamp de Firebase
+        if (timestampValue && typeof timestampValue.toDate === 'function') {
+            const date = timestampValue.toDate();
+            normalized.timestamp = formatTimestampMazatlan(date);
+        } 
+        // Si es un Date object
+        else if (timestampValue instanceof Date) {
+            normalized.timestamp = formatTimestampMazatlan(timestampValue);
+        }
+        // Si es un string o número
+        else if (timestampValue) {
+            const date = new Date(timestampValue);
+            normalized.timestamp = formatTimestampMazatlan(date);
+        } else {
+            normalized.timestamp = '';
+        }
+    } else {
+        normalized.timestamp = '';
+    }    
     normalized.email = data.email || '';
     normalized.googleUserId = data.google_user_id || '';
     normalized.nombreAutenticado = data.authenticated_user_name || data.nombre_completo || '';
@@ -91,7 +113,16 @@ function normalizeFieldNames(data) {
     
     // Convertir array de evidencias a texto
     if (data.evidencias && Array.isArray(data.evidencias) && data.evidencias.length > 0) {
-        normalized.nombresEvidencias = data.evidencias.map(e => e.nombre || e).join(', ');
+        normalized.nombresEvidencias = data.evidencias
+            .map(e => {
+                // Extraer filename del objeto evidencia
+                if (typeof e === 'object' && e !== null) {
+                    return e.filename || e.nombre || '';
+                }
+                return e || '';
+            })
+            .filter(filename => filename !== '') // Filtrar vacíos
+            .join(', ');
     } else {
         normalized.nombresEvidencias = '';
     }
@@ -400,5 +431,45 @@ export async function testFirebaseConnection() {
             success: false,
             message: 'Error de conexión: ' + error.message
         };
+    }
+}
+
+/**
+ * Formatear timestamp a zona horaria de Mazatlán
+ * Formato: DD/MM/YYYY HH:MM:SS
+ */
+function formatTimestampMazatlan(date) {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+        return '';
+    }
+    
+    try {
+        // Opciones para formato en zona horaria de Mazatlán
+        const options = {
+            timeZone: 'America/Mazatlan',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        };
+        
+        const formatter = new Intl.DateTimeFormat('es-MX', options);
+        const parts = formatter.formatToParts(date);
+        
+        // Extraer partes
+        const partsMap = {};
+        parts.forEach(part => {
+            partsMap[part.type] = part.value;
+        });
+        
+        // Construir formato DD/MM/YYYY HH:MM:SS
+        return `${partsMap.day}/${partsMap.month}/${partsMap.year} ${partsMap.hour}:${partsMap.minute}:${partsMap.second}`;
+        
+    } catch (error) {
+        console.error('Error formateando timestamp:', error);
+        return date.toLocaleString('es-MX', { timeZone: 'America/Mazatlan' });
     }
 }
