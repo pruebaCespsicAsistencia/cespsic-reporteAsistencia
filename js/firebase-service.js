@@ -115,9 +115,9 @@ function normalizeFieldNames(data) {
     if (data.evidencias && Array.isArray(data.evidencias) && data.evidencias.length > 0) {
         normalized.nombresEvidencias = data.evidencias
             .map(e => {
-                // Extraer filename del objeto evidencia
+                // Extraer fileName del objeto evidencia (camelCase como está en Firebase)
                 if (typeof e === 'object' && e !== null) {
-                    return e.filename || e.nombre || '';
+                    return e.fileName || e.filename || e.nombre || '';
                 }
                 return e || '';
             })
