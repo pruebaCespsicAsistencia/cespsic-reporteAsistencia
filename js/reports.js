@@ -849,10 +849,11 @@ async function handleReporteHoras(e) {
     
     const fechaDesde = document.getElementById('fecha_desde').value;
     const fechaHasta = document.getElementById('fecha_hasta').value;
+    const mesCompleto = document.getElementById('checkbox-mes-completo')?.checked || false;
     
     if (!fechaDesde || !fechaHasta || !validateDates()) return;
     
-    showStatus('⏳ Generando reporte de horas...', 'loading');
+    showStatus('⏳ Generando reporte de asistencias...', 'loading');
     
     try {
         await fetchAttendanceDataFromFirebase();
@@ -862,12 +863,12 @@ async function handleReporteHoras(e) {
             return;
         }
         
-        await generatePDFHorasPorDia(fechaDesde, fechaHasta);
+        await generatePDFHorasPorDia(fechaDesde, fechaHasta, mesCompleto);
         showDownloadModal(fechaDesde, fechaHasta, 'horas');
         hideStatus();
         
     } catch (error) {
-        console.error('❌ Error generando reporte de horas:', error);
+        console.error('❌ Error generando reporte de asistencias:', error);
         showStatus('❌ Error: ' + error.message, 'error');
     }
 }
@@ -875,22 +876,28 @@ async function handleReporteHoras(e) {
 /**
  * FUNCIÓN MODIFICADA: Generar PDF de Horas por Día con anchos optimizados
  */
-async function generatePDFHorasPorDia(fechaDesde, fechaHasta) {
+async function generatePDFHorasPorDia(fechaDesde, fechaHasta, mesCompleto = false) {
     const {jsPDF} = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
     doc.setFont('helvetica');
     
+    // ✅ DETERMINAR MODO: checkbox marcado = tipos de registro, desmarcado = horas
+    const modoTiposRegistro = mesCompleto;
+    
     // Calcular rango de días a mostrar
-    const rangoFechas = calcularRangoDias(fechaDesde, fechaHasta);
+    const rangoFechas = calcularRangoDias(fechaDesde, fechaHasta, mesCompleto);
     const diasMostrar = rangoFechas.dias;
     
     // Preparar datos agrupados por usuario y día
-    const datosHoras = prepareHorasPorDia(diasMostrar);
+    const datosHoras = prepareHorasPorDia(diasMostrar, modoTiposRegistro);
     
     // Generar encabezado
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('REPORTE DE HORAS POR DÍA - CESPSIC', 148, 12, {align: 'center'});
+    const titulo = modoTiposRegistro 
+        ? 'REPORTE DE ASISTENCIAS POR DÍA - CESPSIC' 
+        : 'REPORTE DE HORAS POR DÍA - CESPSIC';
+    doc.text(titulo, 148, 12, {align: 'center'});
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
@@ -903,7 +910,11 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta) {
     diasMostrar.forEach(dia => {
         headers.push(dia.dia);
     });
-    headers.push('Total');
+    
+    // ✅ Solo agregar columna Total si NO está en modo tipos de registro
+    if (!modoTiposRegistro) {
+        headers.push('Total');
+    }
     
     // Preparar datos de tabla
     const tableData = datosHoras.map(usuario => {
@@ -917,8 +928,21 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta) {
         
         diasMostrar.forEach(dia => {
             const fechaKey = dia.fecha;
-            row.push(usuario.horasPorDia[fechaKey] || '');
+            // ✅ Usar el campo correcto según el modo
+            if (modoTiposRegistro) {
+                row.push(usuario.registrosPorDia[fechaKey] || '');
+            } else {
+                row.push(usuario.horasPorDia[fechaKey] || '');
+            }
         });
+        
+        // ✅ Solo agregar total si NO está en modo tipos de registro
+        if (!modoTiposRegistro) {
+            row.push(usuario.totalHoras.toFixed(1));
+        }
+        
+        return row;
+    });
         
         row.push(usuario.totalHoras.toFixed(1));
         
@@ -940,13 +964,16 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta) {
         columnStyles[i] = {fontSize: 5, halign: 'center', cellWidth: 5};
     }
     
-    // Columna Total Hrs (destacada)
-    columnStyles[headers.length - 1] = {
-        fontSize: 6, 
-        halign: 'center', 
-        cellWidth: 10,
-        fontStyle: 'bold'
-    };
+    // ✅ Solo aplicar estilo a columna Total si NO está en modo tipos de registro
+    if (!modoTiposRegistro) {
+        // Columna Total Hrs (destacada)
+        columnStyles[headers.length - 1] = {
+            fontSize: 6, 
+            halign: 'center', 
+            cellWidth: 10,
+            fontStyle: 'bold'
+        };
+    }
     
     // Generar tabla con márgenes reducidos para aprovechar espacio
     doc.autoTable({
@@ -980,7 +1007,13 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta) {
     // Footer con leyenda
     const finalY = doc.lastAutoTable.finalY + 5;
     doc.setFontSize(7);
-    doc.text('Leyenda: (vacío) = Sin registro | X = Registro incompleto | Números = Horas trabajadas', 10, finalY);
+    
+    // ✅ Leyenda según el modo
+    const leyenda = modoTiposRegistro
+        ? 'Leyenda: E=Entrada | S=Salida | P=Permiso | F=Día Festivo | N=No Abrió Clínica | O=Otro | (vacío)=Sin registro'
+        : 'Leyenda: (vacío) = Sin registro | X = Registro incompleto | Números = Horas trabajadas';
+    
+    doc.text(leyenda, 10, finalY);
     
     addPDFFooter(doc);
     pdfBlob = doc.output('blob');
@@ -1051,7 +1084,7 @@ function calcularRangoDias(fechaDesde, fechaHasta) {
     };
 }
 
-function prepareHorasPorDia(diasMostrar) {
+function prepareHorasPorDia(diasMostrar, modoTiposRegistro = false) {
     // Agrupar registros por usuario
     const usuariosMap = new Map();
     
@@ -1080,36 +1113,62 @@ function prepareHorasPorDia(diasMostrar) {
         });
     });
     
-    // Calcular horas por día para cada usuario
+    // ✅ Calcular según el modo
     const datosHoras = [];
     
     usuariosMap.forEach(usuario => {
-        const horasPorDia = {};
-        let totalHoras = 0;
+        const resultado = {};
         
-        diasMostrar.forEach(dia => {
-            const fecha = dia.fecha;
-            const registros = usuario.registrosPorDia[fecha] || [];
+        if (modoTiposRegistro) {
+            // MODO TIPOS DE REGISTRO: Calcular iniciales
+            const registrosPorDia = {};
             
-            if (registros.length === 0) {
-                horasPorDia[fecha] = '';
-            } else {
-                const horas = calcularHorasDia(registros);
-                horasPorDia[fecha] = horas.display;
-                if (horas.value > 0) {
-                    totalHoras += horas.value;
+            diasMostrar.forEach(dia => {
+                const fecha = dia.fecha;
+                const registros = usuario.registrosPorDia[fecha] || [];
+                
+                if (registros.length === 0) {
+                    registrosPorDia[fecha] = '';
+                } else {
+                    const iniciales = calcularInicialesDia(registros);
+                    registrosPorDia[fecha] = iniciales;
                 }
-            }
-        });
+            });
+            
+            resultado.registrosPorDia = registrosPorDia;
+            
+        } else {
+            // MODO HORAS: Calcular horas (funcionalidad original)
+            const horasPorDia = {};
+            let totalHoras = 0;
+            
+            diasMostrar.forEach(dia => {
+                const fecha = dia.fecha;
+                const registros = usuario.registrosPorDia[fecha] || [];
+                
+                if (registros.length === 0) {
+                    horasPorDia[fecha] = '';
+                } else {
+                    const horas = calcularHorasDia(registros);
+                    horasPorDia[fecha] = horas.display;
+                    if (horas.value > 0) {
+                        totalHoras += horas.value;
+                    }
+                }
+            });
+            
+            resultado.horasPorDia = horasPorDia;
+            resultado.totalHoras = totalHoras;
+        }
         
+        // Agregar datos comunes
         datosHoras.push({
             nombre: usuario.nombre,
             apellidoPaterno: usuario.apellidoPaterno,
             apellidoMaterno: usuario.apellidoMaterno,
             tipoEstudiante: usuario.tipoEstudiante,
             modalidad: usuario.modalidad,
-            horasPorDia: horasPorDia,
-            totalHoras: totalHoras
+            ...resultado
         });
     });
     
