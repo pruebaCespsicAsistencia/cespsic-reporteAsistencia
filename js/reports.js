@@ -953,10 +953,10 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta, mesCompleto = fals
         const fechaObj = parseISODateSafe(rangoFechas.fechaFin);
         const mesNombre = fechaObj.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
         doc.text(`Mes: ${mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1)}`, 10, 32);
-        doc.text(`Días mostrados: 1 al ${rangoFechas.fechaFin.split('-')[2]}`, 10, 36);
+        //doc.text(`Días mostrados: 1 al ${rangoFechas.fechaFin.split('-')[2]}`, 10, 36);
     } else {
         doc.text(`Período: ${rangoFechas.fechaInicio} al ${rangoFechas.fechaFin}`, 10, 32);
-        doc.text(`Total registros: ${attendanceData.length}`, 10, 36);
+        //doc.text(`Total registros: ${attendanceData.length}`, 10, 36);
     }
     
     doc.text(`Total usuarios: ${datosHoras.length}`, 200, 36);
