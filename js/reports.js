@@ -851,6 +851,8 @@ async function handleReporteHoras(e) {
     const fechaHasta = document.getElementById('fecha_hasta').value;
     const mesCompleto = document.getElementById('checkbox-mes-completo')?.checked || false;
     
+    console.log('🔘 Checkbox "Generar mes completo":', mesCompleto ? 'MARCADO ✓' : 'DESMARCADO ✗');
+    
     if (!fechaDesde || !fechaHasta || !validateDates()) return;
     
     showStatus('⏳ Generando reporte de asistencias...', 'loading');
@@ -883,6 +885,10 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta, mesCompleto = fals
     
     // ✅ DETERMINAR MODO: checkbox marcado = tipos de registro, desmarcado = horas
     const modoTiposRegistro = mesCompleto;
+    
+    console.log('=== GENERANDO REPORTE ===');
+    console.log('📊 Modo:', modoTiposRegistro ? 'TIPOS DE REGISTRO (Mes Completo)' : 'HORAS (Solo E/S)');
+    console.log('📅 Checkbox mes completo:', mesCompleto);
     
     // Calcular rango de días a mostrar
     const rangoFechas = calcularRangoDias(fechaDesde, fechaHasta, mesCompleto);
@@ -1006,7 +1012,9 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta, mesCompleto = fals
     // ✅ Leyenda según el modo
     const leyenda = modoTiposRegistro
         ? 'Leyenda: E=Entrada | S=Salida | P=Permiso | F=Día Festivo | N=No Abrió Clínica | O=Otro | (vacío)=Sin registro'
-        : 'Leyenda: (vacío) = Sin registro | X = Registro incompleto | Números = Horas trabajadas';
+        : 'Leyenda: (vacío)=Sin registro | X=Registro incompleto (falta Entrada o Salida) | Números=Horas trabajadas (solo E/S)';
+
+doc.text(leyenda, 10, finalY);
     
     doc.text(leyenda, 10, finalY);
     
@@ -1020,31 +1028,47 @@ function parseISODateSafe(dateString) {
     return new Date(year, month - 1, day, 0, 0, 0, 0);
 }
 
-function calcularRangoDias(fechaDesde, fechaHasta) {
+function calcularRangoDias(fechaDesde, fechaHasta, mesCompleto = false) {
     // Parsear fechas de forma segura sin problemas de zona horaria
     const desde = parseISODateSafe(fechaDesde);
     const hasta = parseISODateSafe(fechaHasta);
-    //const desde = new Date(fechaDesde);
-    //const hasta = new Date(fechaHasta);    
+    
     if (!desde || !hasta) {
         console.error('Error parseando fechas:', fechaDesde, fechaHasta);
         return { fechaInicio: fechaDesde, fechaFin: fechaHasta, dias: [] };
     }
     
-    const diffTime = Math.abs(hasta - desde);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
     let fechaInicio, fechaFin;
     
-    if (diffDays > 31) {
-        // Más de un mes: mostrar solo 1 mes hacia atrás desde fechaHasta
-        fechaFin = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
-        fechaInicio = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
-        fechaInicio.setDate(fechaInicio.getDate() - 30);
+    if (mesCompleto) {
+        // ✅ MODO MES COMPLETO: Mostrar TODO el mes de la fecha "hasta"
+        const year = hasta.getFullYear();
+        const month = hasta.getMonth();
+        
+        // Primer día del mes
+        fechaInicio = new Date(year, month, 1, 0, 0, 0, 0);
+        
+        // Último día del mes (día 0 del mes siguiente = último día del mes actual)
+        fechaFin = new Date(year, month + 1, 0, 0, 0, 0, 0);
+        
+        console.log('📅 Modo MES COMPLETO activado');
+        console.log('  Generando días del 1 al', fechaFin.getDate());
+        console.log('  Rango:', fechaInicio.toLocaleDateString('es-MX'), 'al', fechaFin.toLocaleDateString('es-MX'));
     } else {
-        // Menos de un mes: mostrar rango completo
-        fechaInicio = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
-        fechaFin = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+        // MODO NORMAL: usar lógica original
+        const diffTime = Math.abs(hasta - desde);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 31) {
+            // Más de un mes: mostrar solo 1 mes hacia atrás desde fechaHasta
+            fechaFin = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+            fechaInicio = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+            fechaInicio.setDate(fechaInicio.getDate() - 30);
+        } else {
+            // Menos de un mes: mostrar rango completo
+            fechaInicio = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
+            fechaFin = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+        }
     }
     
     // Generar array de días
@@ -1133,7 +1157,7 @@ function prepareHorasPorDia(diasMostrar, modoTiposRegistro = false) {
             resultado.registrosPorDia = registrosPorDia;
             
         } else {
-            // MODO HORAS: Calcular horas (funcionalidad original)
+            // ✅ MODO HORAS: Calcular horas (SOLO Entrada y Salida)
             const horasPorDia = {};
             let totalHoras = 0;
             
@@ -1142,10 +1166,14 @@ function prepareHorasPorDia(diasMostrar, modoTiposRegistro = false) {
                 const registros = usuario.registrosPorDia[fecha] || [];
                 
                 if (registros.length === 0) {
+                    // Sin registros = vacío
                     horasPorDia[fecha] = '';
                 } else {
+                    // Calcular horas SOLO con Entrada y Salida
                     const horas = calcularHorasDia(registros);
                     horasPorDia[fecha] = horas.display;
+                    
+                    // Solo sumar si hay horas válidas
                     if (horas.value > 0) {
                         totalHoras += horas.value;
                     }
@@ -1178,10 +1206,18 @@ function prepareHorasPorDia(diasMostrar, modoTiposRegistro = false) {
 }
 
 function calcularHorasDia(registros) {
-    // Separar entradas y salidas
-    const entradas = registros.filter(r => r.tipoRegistro && r.tipoRegistro.toLowerCase() === 'entrada');
-    const salidas = registros.filter(r => r.tipoRegistro && r.tipoRegistro.toLowerCase() === 'salida');
+    // ✅ MODO HORAS: SOLO considerar Entrada y Salida
+    const entradas = registros.filter(r => {
+        const tipo = (r.tipoRegistro || '').toLowerCase().trim();
+        return tipo === 'entrada';
+    });
     
+    const salidas = registros.filter(r => {
+        const tipo = (r.tipoRegistro || '').toLowerCase().trim();
+        return tipo === 'salida';
+    });
+    
+    // Si no hay entrada O no hay salida, marcar como incompleto
     if (entradas.length === 0 || salidas.length === 0) {
         return {display: 'X', value: 0};
     }
