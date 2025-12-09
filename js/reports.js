@@ -943,12 +943,7 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta, mesCompleto = fals
         
         return row;
     });
-        
-        row.push(usuario.totalHoras.toFixed(1));
-        
-        return row;
-    });
-    
+         
     // ✅ ESTILOS OPTIMIZADOS DE COLUMNAS
     const columnStyles = {};
     
