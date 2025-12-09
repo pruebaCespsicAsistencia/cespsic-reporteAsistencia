@@ -1354,7 +1354,7 @@ function calcularInicialesDia(registros) {
         // 7. No reconocido (por defecto 'O')
         else if (tipoNormalizado !== '') {
             console.warn('⚠️ Tipo de registro no reconocido:', tipoRegistro);
-            inicialEncontrada = 'O';
+            inicialEncontrada = tipoNormalizado;
         }
         
         // Agregar inicial encontrada
