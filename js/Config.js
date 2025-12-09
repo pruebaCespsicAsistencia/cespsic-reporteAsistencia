@@ -63,9 +63,9 @@ const AMBIENTES = {
 const AUTH_CONFIG = {
   // Google Client ID para Google Sign-In
   //PRODUCCION
-  GOOGLE_CLIENT_ID: '799841037062-kal4vump3frc2f8d33bnp4clc9amdnng.apps.googleusercontent.com',
+  //GOOGLE_CLIENT_ID: '799841037062-kal4vump3frc2f8d33bnp4clc9amdnng.apps.googleusercontent.com',
   //PRUEBAS
-  //GOOGLE_CLIENT_ID: '154864030871-ck4l5krb7qm68kmp6a7rcq7h072ldm6g.apps.googleusercontent.com',
+  GOOGLE_CLIENT_ID: '249910813853-i9pm0mhpeqtlqm4ek5mp5jrkq6ik2fbe.apps.googleusercontent.com',
   
   // Usuarios administradores con acceso completo
   ADMIN_USERS: [
