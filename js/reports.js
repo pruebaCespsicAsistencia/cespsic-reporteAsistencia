@@ -1211,6 +1211,64 @@ function calcularHorasDia(registros) {
     };
 }
 
+/**
+ * ✅ NUEVA FUNCIÓN: Calcular iniciales de tipos de registro para un día
+ * Retorna: E, S, P, F, N, O o combinaciones como E/S
+ */
+function calcularInicialesDia(registros) {
+    if (!registros || registros.length === 0) {
+        return '';
+    }
+    
+    // Mapeo de tipos de registro a iniciales
+    const inicialesMap = {
+        'entrada': 'E',
+        'salida': 'S',
+        'permiso': 'P',
+        'dia festivo': 'F',
+        'día festivo': 'F',
+        'no abrio clinica': 'N',
+        'no abrió clínica': 'N',
+        'no abrió': 'N',
+        'otro': 'O'
+    };
+    
+    // Set para evitar duplicados y mantener orden
+    const inicialesSet = new Set();
+    const ordenPreferido = ['E', 'S', 'P', 'F', 'N', 'O'];
+    
+    registros.forEach(registro => {
+        const tipoRegistro = (registro.tipoRegistro || '').toLowerCase().trim();
+        
+        // Buscar coincidencia en el mapa
+        let inicialEncontrada = null;
+        for (const [key, inicial] of Object.entries(inicialesMap)) {
+            if (tipoRegistro.includes(key) || tipoRegistro === key) {
+                inicialEncontrada = inicial;
+                break;
+            }
+        }
+        
+        // Si se encontró inicial, agregarla al set
+        if (inicialEncontrada) {
+            inicialesSet.add(inicialEncontrada);
+        } else if (tipoRegistro !== '') {
+            // Si no se reconoce el tipo, usar 'O' por defecto
+            inicialesSet.add('O');
+        }
+    });
+    
+    if (inicialesSet.size === 0) {
+        return '';
+    }
+    
+    // Ordenar según el orden preferido
+    const inicialesOrdenadas = ordenPreferido.filter(inicial => inicialesSet.has(inicial));
+    
+    // Unir con '/'
+    return inicialesOrdenadas.join('/');
+}
+
 function convertirHoraAMinutos(horaStr) {
     if (!horaStr) return null;
     
