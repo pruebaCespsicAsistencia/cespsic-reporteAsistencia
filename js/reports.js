@@ -872,6 +872,9 @@ async function handleReporteHoras(e) {
     }
 }
 
+/**
+ * FUNCIÓN MODIFICADA: Generar PDF de Horas por Día con anchos optimizados
+ */
 async function generatePDFHorasPorDia(fechaDesde, fechaHasta) {
     const {jsPDF} = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
@@ -896,11 +899,11 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta) {
     doc.text(`Total usuarios: ${datosHoras.length}`, 10, 28);
     
     // Preparar headers de tabla
-    const headers = ['Nombre', 'Ap. Paterno', 'Ap. Materno', 'Tipo Est.', 'Modalidad'];
+    const headers = ['Nombre', 'Ap. Pat.', 'Ap. Mat.', 'Tipo Est.', 'Modalidad'];
     diasMostrar.forEach(dia => {
         headers.push(dia.dia);
     });
-    headers.push('Total Hrs');
+    headers.push('Total');
     
     // Preparar datos de tabla
     const tableData = datosHoras.map(usuario => {
@@ -922,26 +925,56 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta) {
         return row;
     });
     
-    // Estilos de columnas
+    // ✅ ESTILOS OPTIMIZADOS DE COLUMNAS
     const columnStyles = {};
-    headers.forEach((header, index) => {
-        if (index < 5) {
-            columnStyles[index] = {fontSize: 6};
-        } else {
-            columnStyles[index] = {fontSize: 5, halign: 'center', cellWidth: 8};
-        }
-    });
     
-    // Generar tabla
+    // Columnas de información personal (más anchas para nombres completos)
+    columnStyles[0] = {fontSize: 6, cellWidth: 22, halign: 'left'};  // Nombre
+    columnStyles[1] = {fontSize: 6, cellWidth: 20, halign: 'left'};  // Ap. Paterno
+    columnStyles[2] = {fontSize: 6, cellWidth: 20, halign: 'left'};  // Ap. Materno
+    columnStyles[3] = {fontSize: 5, cellWidth: 16, halign: 'center'}; // Tipo Est.
+    columnStyles[4] = {fontSize: 5, cellWidth: 14, halign: 'center'}; // Modalidad
+    
+    // Columnas de días (más compactas: 5mm en lugar de 8mm)
+    for (let i = 5; i < headers.length - 1; i++) {
+        columnStyles[i] = {fontSize: 5, halign: 'center', cellWidth: 5};
+    }
+    
+    // Columna Total Hrs (destacada)
+    columnStyles[headers.length - 1] = {
+        fontSize: 6, 
+        halign: 'center', 
+        cellWidth: 10,
+        fontStyle: 'bold'
+    };
+    
+    // Generar tabla con márgenes reducidos para aprovechar espacio
     doc.autoTable({
         head: [headers],
         body: tableData,
         startY: 35,
-        styles: {fontSize: 5, cellPadding: 1, lineColor: [200,200,200], lineWidth: 0.1},
-        headStyles: {fillColor: [102,126,234], textColor: 255, fontStyle: 'bold', fontSize: 5},
-        alternateRowStyles: {fillColor: [248,249,250]},
+        styles: {
+            fontSize: 5, 
+            cellPadding: 0.8, 
+            lineColor: [200,200,200], 
+            lineWidth: 0.1,
+            overflow: 'linebreak',
+            cellWidth: 'wrap'
+        },
+        headStyles: {
+            fillColor: [102,126,234], 
+            textColor: 255, 
+            fontStyle: 'bold', 
+            fontSize: 5,
+            halign: 'center',
+            valign: 'middle'
+        },
+        alternateRowStyles: {
+            fillColor: [248,249,250]
+        },
         columnStyles: columnStyles,
-        margin: {left: 5, right: 5}
+        margin: {left: 5, right: 5, top: 35, bottom: 15},
+        tableWidth: 'auto'
     });
     
     // Footer con leyenda
@@ -953,9 +986,22 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta) {
     pdfBlob = doc.output('blob');
 }
 
+function parseISODateSafe(dateString) {
+    if (!dateString) return null;
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
 function calcularRangoDias(fechaDesde, fechaHasta) {
-    const desde = new Date(fechaDesde);
-    const hasta = new Date(fechaHasta);
+    // Parsear fechas de forma segura sin problemas de zona horaria
+    const desde = parseISODateSafe(fechaDesde);
+    const hasta = parseISODateSafe(fechaHasta);
+    //const desde = new Date(fechaDesde);
+    //const hasta = new Date(fechaHasta);    
+    if (!desde || !hasta) {
+        console.error('Error parseando fechas:', fechaDesde, fechaHasta);
+        return { fechaInicio: fechaDesde, fechaFin: fechaHasta, dias: [] };
+    }
     
     const diffTime = Math.abs(hasta - desde);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -964,30 +1010,43 @@ function calcularRangoDias(fechaDesde, fechaHasta) {
     
     if (diffDays > 31) {
         // Más de un mes: mostrar solo 1 mes hacia atrás desde fechaHasta
-        fechaFin = new Date(hasta);
-        fechaInicio = new Date(hasta);
+        fechaFin = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+        fechaInicio = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
         fechaInicio.setDate(fechaInicio.getDate() - 30);
     } else {
         // Menos de un mes: mostrar rango completo
-        fechaInicio = new Date(desde);
-        fechaFin = new Date(hasta);
+        fechaInicio = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
+        fechaFin = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
     }
     
     // Generar array de días
     const dias = [];
-    const currentDate = new Date(fechaInicio);
+    const currentDate = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate());
     
     while (currentDate <= fechaFin) {
+        // ✅ CONSTRUIR FECHA MANUALMENTE (sin conversión UTC)
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        
         dias.push({
-            fecha: currentDate.toISOString().split('T')[0],
-            dia: currentDate.getDate().toString().padStart(2, '0')
+            fecha: `${year}-${month}-${day}`,  // ✅ String manual
+            dia: day                            // ✅ Día local
         });
+        
         currentDate.setDate(currentDate.getDate() + 1);
     }
     
+    // ✅ CONSTRUIR STRINGS DE RETORNO MANUALMENTE
+    const fechaInicioStr = `${fechaInicio.getFullYear()}-${String(fechaInicio.getMonth() + 1).padStart(2, '0')}-${String(fechaInicio.getDate()).padStart(2, '0')}`;
+    const fechaFinStr = `${fechaFin.getFullYear()}-${String(fechaFin.getMonth() + 1).padStart(2, '0')}-${String(fechaFin.getDate()).padStart(2, '0')}`;
+    
+    console.log('  Total días generados:', dias.length);
+    console.log('  Primer día:', dias[0]?.dia, 'Último día:', dias[dias.length - 1]?.dia);
+    
     return {
-        fechaInicio: fechaInicio.toISOString().split('T')[0],
-        fechaFin: fechaFin.toISOString().split('T')[0],
+        fechaInicio: fechaInicioStr,
+        fechaFin: fechaFinStr,
         dias: dias
     };
 }
@@ -1386,6 +1445,9 @@ function closeModal() {
     document.getElementById('modal-overlay').classList.remove('show');
 }
 
+// Exponer al scope global para onclick en HTML
+window.closeModal = closeModal;
+
 function downloadFile(fechaDesde, fechaHasta, tipoReporte) {
     if (pdfBlob) {
         const url = URL.createObjectURL(pdfBlob);
@@ -1505,6 +1567,9 @@ function signOut() {
         showStatus('❌ Error cerrando sesión', 'error');
     }
 }
+
+// Exponer al scope global para onclick en HTML
+window.signOut = signOut;
 
 function showStatus(message, type) {
     const status = document.getElementById('status');
