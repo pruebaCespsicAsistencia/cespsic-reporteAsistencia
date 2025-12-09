@@ -959,7 +959,7 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta, mesCompleto = fals
         //doc.text(`Total registros: ${attendanceData.length}`, 10, 36);
     }
     
-    doc.text(`Total usuarios: ${datosHoras.length}`, 200, 36);
+    //doc.text(`Total usuarios: ${datosHoras.length}`, 200, 36);
     
     // Preparar headers de tabla
     const headers = ['Nombre', 'Ap. Pat.', 'Ap. Mat.', 'Tipo Est.', 'Modalidad'];
