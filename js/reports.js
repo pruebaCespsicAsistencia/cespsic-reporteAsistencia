@@ -1305,19 +1305,6 @@ function calcularInicialesDia(registros) {
         return '';
     }
     
-    // Mapeo de tipos de registro a iniciales
-    const inicialesMap = {
-        'entrada': 'E',
-        'salida': 'S',
-        'permiso': 'P',
-        'dia festivo': 'F',
-        'día festivo': 'F',
-        'no abrio clinica': 'N',
-        'no abrió clínica': 'N',
-        'no abrió': 'N',
-        'otro': 'O'
-    };
-    
     // Set para evitar duplicados y mantener orden
     const inicialesSet = new Set();
     const ordenPreferido = ['E', 'S', 'P', 'F', 'N', 'O'];
@@ -1325,21 +1312,54 @@ function calcularInicialesDia(registros) {
     registros.forEach(registro => {
         const tipoRegistro = (registro.tipoRegistro || '').toLowerCase().trim();
         
-        // Buscar coincidencia en el mapa
+        // ✅ Limpiar texto: eliminar acentos y normalizar
+        const tipoNormalizado = tipoRegistro
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+            .replace(/\s+/g, ' ')             // Normalizar espacios
+            .trim();
+        
         let inicialEncontrada = null;
-        for (const [key, inicial] of Object.entries(inicialesMap)) {
-            if (tipoRegistro.includes(key) || tipoRegistro === key) {
-                inicialEncontrada = inicial;
-                break;
-            }
+        
+        // ✅ BUSCAR EN ORDEN DE ESPECIFICIDAD (más específico primero)
+        
+        // 1. Entrada
+        if (tipoNormalizado === 'entrada') {
+            inicialEncontrada = 'E';
+        }
+        // 2. Salida
+        else if (tipoNormalizado === 'salida') {
+            inicialEncontrada = 'S';
+        }
+        // 3. Permiso
+        else if (tipoNormalizado === 'permiso' || tipoNormalizado.includes('permiso')) {
+            inicialEncontrada = 'P';
+        }
+        // 4. Día Festivo
+        else if (tipoNormalizado.includes('festivo') || tipoNormalizado.includes('dia festivo')) {
+            inicialEncontrada = 'F';
+        }
+        // 5. No Abrió Clínica (PRIORIDAD ALTA - antes de "Otro")
+        else if (tipoNormalizado.includes('no abrio') || 
+                 tipoNormalizado.includes('noabrioclinica') || 
+                 tipoNormalizado.includes('no abrio clinica') ||
+                 tipoNormalizado.includes('clinica cerrada') ||
+                 tipoNormalizado.includes('no se abrio')) {
+            inicialEncontrada = 'N';
+        }
+        // 6. Otro (SIEMPRE AL FINAL)
+        else if (tipoNormalizado === 'otro' || tipoNormalizado.includes('otro')) {
+            inicialEncontrada = 'O';
+        }
+        // 7. No reconocido (por defecto 'O')
+        else if (tipoNormalizado !== '') {
+            console.warn('⚠️ Tipo de registro no reconocido:', tipoRegistro);
+            inicialEncontrada = 'O';
         }
         
-        // Si se encontró inicial, agregarla al set
+        // Agregar inicial encontrada
         if (inicialEncontrada) {
             inicialesSet.add(inicialEncontrada);
-        } else if (tipoRegistro !== '') {
-            // Si no se reconoce el tipo, usar 'O' por defecto
-            inicialesSet.add('O');
         }
     });
     
