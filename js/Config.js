@@ -16,7 +16,7 @@ const AMBIENTES = {
     EVIDENCIAS_FOLDER_ID: '1tt6yqPycpYT9My16frwjo_c0auz8Du_g',
     
     // Google Apps Script URL (YA NO SE USA - MIGRADO A FIREBASE)
-    GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw10UgiYsuGYi16MisVfk7fx-wlGU-gUmCKTz2bZmyqys_2ku1ghZ9zzv71UncZ_sXlDg/exec',
+    GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzBJRaLjii8Y8F_9XC3_n5e--R2bzDXqrfWHeFUIYn3cRct-qVHZ1VEgJEj8XKEU9Ch/exec',
     
     // Firebase - CONFIGURACIÓN ACTIVA
     FIREBASE_CONFIG: {
@@ -45,13 +45,13 @@ const AMBIENTES = {
     
     // Firebase - CONFIGURACIÓN ACTIVA (mismo proyecto para ambos ambientes)
     FIREBASE_CONFIG: {
-      apiKey: "AIzaSyBINCTkXd77-SKnCAlcT1wU6d-kpEkEAHs",
-      authDomain: "cespsic-asistencias.firebaseapp.com",
-      projectId: "cespsic-asistencias",
-      storageBucket: "cespsic-asistencias.firebasestorage.app",
-      messagingSenderId: "249910813853",
-      appId: "1:249910813853:web:f0764208f9db7727046074",
-      measurementId: "G-TXEEEQGY1X"
+      apiKey: "AIzaSyCcCqZ98oBrV1DrPjE6kYii6rOc2G_fiqI",
+      authDomain: "cespsic-asistencias-a2445.firebaseapp.com",
+      projectId: "cespsic-asistencias-a2445",
+      storageBucket: "cespsic-asistencias-a2445.firebasestorage.app",
+      messagingSenderId: "665878809773",
+      appId: "1:665878809773:web:fdddaa550a5ae402844a24",
+      measurementId: "G-PJWN1NQCPX"
     },
     
     // Colección de Firestore para asistencias
@@ -63,9 +63,9 @@ const AMBIENTES = {
 const AUTH_CONFIG = {
   // Google Client ID para Google Sign-In
   //PRODUCCION
-  //GOOGLE_CLIENT_ID: '799841037062-kal4vump3frc2f8d33bnp4clc9amdnng.apps.googleusercontent.com',
-	//PRUEBAS
-	GOOGLE_CLIENT_ID: '154864030871-ck4l5krb7qm68kmp6a7rcq7h072ldm6g.apps.googleusercontent.com',
+  GOOGLE_CLIENT_ID: '799841037062-kal4vump3frc2f8d33bnp4clc9amdnng.apps.googleusercontent.com',
+  //PRUEBAS
+  //GOOGLE_CLIENT_ID: '154864030871-ck4l5krb7qm68kmp6a7rcq7h072ldm6g.apps.googleusercontent.com',
   
   // Usuarios administradores con acceso completo
   ADMIN_USERS: [
