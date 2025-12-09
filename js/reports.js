@@ -847,18 +847,54 @@ async function handleReporteHoras(e) {
         return;
     }
     
-    const fechaDesde = document.getElementById('fecha_desde').value;
-    const fechaHasta = document.getElementById('fecha_hasta').value;
+    let fechaDesde = document.getElementById('fecha_desde').value;
+    let fechaHasta = document.getElementById('fecha_hasta').value;
     const mesCompleto = document.getElementById('checkbox-mes-completo')?.checked || false;
     
     console.log('🔘 Checkbox "Generar mes completo":', mesCompleto ? 'MARCADO ✓' : 'DESMARCADO ✗');
     
+    // ✅ Si está en modo mes completo, ajustar fechas para buscar TODO EL MES
+    if (mesCompleto) {
+        const fechaHastaObj = parseISODateSafe(fechaHasta);
+        if (fechaHastaObj) {
+            const year = fechaHastaObj.getFullYear();
+            const month = fechaHastaObj.getMonth();
+            
+            // Primer día del mes
+            const primerDia = new Date(year, month, 1);
+            fechaDesde = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+            
+            // Último día del mes
+            const ultimoDia = new Date(year, month + 1, 0);
+            fechaHasta = `${year}-${String(month + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
+            
+            console.log('📅 Rango ajustado para mes completo:', fechaDesde, 'al', fechaHasta);
+        }
+    }
+    
     if (!fechaDesde || !fechaHasta || !validateDates()) return;
     
-    showStatus('⏳ Generando reporte de asistencias...', 'loading');
+    const statusMsg = mesCompleto 
+        ? '⏳ Generando reporte de asistencias (mes completo)...' 
+        : '⏳ Generando reporte de horas...';
+    showStatus(statusMsg, 'loading');
     
     try {
+        // ✅ Actualizar los filtros temporalmente para la búsqueda
+        const fechaDesdeInput = document.getElementById('fecha_desde');
+        const fechaHastaInput = document.getElementById('fecha_hasta');
+        const fechaDesdeOriginal = fechaDesdeInput.value;
+        const fechaHastaOriginal = fechaHastaInput.value;
+        
+        // Ajustar inputs para la búsqueda
+        fechaDesdeInput.value = fechaDesde;
+        fechaHastaInput.value = fechaHasta;
+        
         await fetchAttendanceDataFromFirebase();
+        
+        // Restaurar valores originales
+        fechaDesdeInput.value = fechaDesdeOriginal;
+        fechaHastaInput.value = fechaHastaOriginal;
         
         if (!attendanceData || attendanceData.length === 0) {
             showStatus('⚠️ Sin registros en este período', 'error');
@@ -870,7 +906,7 @@ async function handleReporteHoras(e) {
         hideStatus();
         
     } catch (error) {
-        console.error('❌ Error generando reporte de asistencias:', error);
+        console.error('❌ Error generando reporte:', error);
         showStatus('❌ Error: ' + error.message, 'error');
     }
 }
@@ -886,9 +922,10 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta, mesCompleto = fals
     // ✅ DETERMINAR MODO: checkbox marcado = tipos de registro, desmarcado = horas
     const modoTiposRegistro = mesCompleto;
     
-    console.log('=== GENERANDO REPORTE ===');
-    console.log('📊 Modo:', modoTiposRegistro ? 'TIPOS DE REGISTRO (Mes Completo)' : 'HORAS (Solo E/S)');
-    console.log('📅 Checkbox mes completo:', mesCompleto);
+    console.log('=== GENERANDO REPORTE PDF ===');
+    console.log('📊 Modo:', modoTiposRegistro ? 'ASISTENCIAS (Todos los tipos)' : 'HORAS (Solo E/S)');
+    console.log('📅 Mes completo:', mesCompleto ? 'SÍ' : 'NO');
+    console.log('📆 Fechas recibidas:', fechaDesde, 'al', fechaHasta);
     
     // Calcular rango de días a mostrar
     const rangoFechas = calcularRangoDias(fechaDesde, fechaHasta, mesCompleto);
@@ -908,8 +945,21 @@ async function generatePDFHorasPorDia(fechaDesde, fechaHasta, mesCompleto = fals
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text(`Generado por: ${currentUser.name}`, 10, 20);
-    doc.text(`Período: ${rangoFechas.fechaInicio} al ${rangoFechas.fechaFin}`, 10, 24);
-    doc.text(`Total usuarios: ${datosHoras.length}`, 10, 28);
+    doc.text(`Email: ${currentUser.email}`, 10, 24);
+    doc.text(`Fecha: ${new Date().toLocaleString('es-MX')}`, 10, 28);
+    
+    // ✅ Información según el modo
+    if (modoTiposRegistro) {
+        const fechaObj = parseISODateSafe(rangoFechas.fechaFin);
+        const mesNombre = fechaObj.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+        doc.text(`Mes: ${mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1)}`, 10, 32);
+        doc.text(`Días mostrados: 1 al ${rangoFechas.fechaFin.split('-')[2]}`, 10, 36);
+    } else {
+        doc.text(`Período: ${rangoFechas.fechaInicio} al ${rangoFechas.fechaFin}`, 10, 32);
+        doc.text(`Total registros: ${attendanceData.length}`, 10, 36);
+    }
+    
+    doc.text(`Total usuarios: ${datosHoras.length}`, 200, 36);
     
     // Preparar headers de tabla
     const headers = ['Nombre', 'Ap. Pat.', 'Ap. Mat.', 'Tipo Est.', 'Modalidad'];
@@ -1041,7 +1091,7 @@ function calcularRangoDias(fechaDesde, fechaHasta, mesCompleto = false) {
     let fechaInicio, fechaFin;
     
     if (mesCompleto) {
-        // ✅ MODO MES COMPLETO: Mostrar TODO el mes de la fecha "hasta"
+        // ✅ MODO MES COMPLETO: Mostrar TODOS los días del mes de la fecha "hasta"
         const year = hasta.getFullYear();
         const month = hasta.getMonth();
         
@@ -1052,23 +1102,27 @@ function calcularRangoDias(fechaDesde, fechaHasta, mesCompleto = false) {
         fechaFin = new Date(year, month + 1, 0, 0, 0, 0, 0);
         
         console.log('📅 Modo MES COMPLETO activado');
+        console.log('  Mes:', fechaInicio.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }));
         console.log('  Generando días del 1 al', fechaFin.getDate());
-        console.log('  Rango:', fechaInicio.toLocaleDateString('es-MX'), 'al', fechaFin.toLocaleDateString('es-MX'));
     } else {
-        // MODO NORMAL: usar lógica original
+        // ✅ MODO HORAS: usar rango fecha desde - fecha hasta
         const diffTime = Math.abs(hasta - desde);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
         if (diffDays > 31) {
-            // Más de un mes: mostrar solo 1 mes hacia atrás desde fechaHasta
+            // Más de un mes: mostrar solo 31 días hacia atrás desde fechaHasta
             fechaFin = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
             fechaInicio = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
             fechaInicio.setDate(fechaInicio.getDate() - 30);
+            console.log('⚠️ Rango > 31 días, ajustado a últimos 31 días');
         } else {
-            // Menos de un mes: mostrar rango completo
+            // Usar rango exacto desde-hasta
             fechaInicio = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
             fechaFin = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
         }
+        
+        console.log('📊 Modo HORAS activado');
+        console.log('  Rango:', fechaInicio.toLocaleDateString('es-MX'), 'al', fechaFin.toLocaleDateString('es-MX'));
     }
     
     // Generar array de días
@@ -1082,8 +1136,8 @@ function calcularRangoDias(fechaDesde, fechaHasta, mesCompleto = false) {
         const day = String(currentDate.getDate()).padStart(2, '0');
         
         dias.push({
-            fecha: `${year}-${month}-${day}`,  // ✅ String manual
-            dia: day                            // ✅ Día local
+            fecha: `${year}-${month}-${day}`,  // ✅ String manual YYYY-MM-DD
+            dia: day                            // ✅ Solo día (01, 02, ... 31)
         });
         
         currentDate.setDate(currentDate.getDate() + 1);
@@ -1093,8 +1147,8 @@ function calcularRangoDias(fechaDesde, fechaHasta, mesCompleto = false) {
     const fechaInicioStr = `${fechaInicio.getFullYear()}-${String(fechaInicio.getMonth() + 1).padStart(2, '0')}-${String(fechaInicio.getDate()).padStart(2, '0')}`;
     const fechaFinStr = `${fechaFin.getFullYear()}-${String(fechaFin.getMonth() + 1).padStart(2, '0')}-${String(fechaFin.getDate()).padStart(2, '0')}`;
     
-    console.log('  Total días generados:', dias.length);
-    console.log('  Primer día:', dias[0]?.dia, 'Último día:', dias[dias.length - 1]?.dia);
+    console.log('  ✅ Total días generados:', dias.length);
+    console.log('  📅 Días:', `${dias[0]?.dia} al ${dias[dias.length - 1]?.dia}`);
     
     return {
         fechaInicio: fechaInicioStr,
