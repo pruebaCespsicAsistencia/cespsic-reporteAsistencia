@@ -329,13 +329,18 @@ export async function getUsersInRange(fechaDesde, fechaHasta) {
             const rawData = doc.data();
             const data = normalizeFieldNames(rawData);
             
-            const nombreCompleto = `${data.nombre || ''} ${data.apellidoPaterno || ''} ${data.apellidoMaterno || ''}`.trim();
-            if (nombreCompleto) {
-                usersSet.add(normalizeNameCapitalization(nombreCompleto));
+            // Limpiar y normalizar el nombre completo
+            const nombreCompleto = `${data.nombre || ''} ${data.apellidoPaterno || ''} ${data.apellidoMaterno || ''}`
+                .trim()
+                .replace(/\s+/g, ' '); // Eliminar espacios múltiples
+            
+            if (nombreCompleto && nombreCompleto !== '') {
+                const nombreNormalizado = normalizeNameCapitalization(nombreCompleto);
+                usersSet.add(nombreNormalizado);
             }
         });
-
-        const users = Array.from(usersSet).sort();
+        
+        const users = Array.from(usersSet).sort((a, b) => a.localeCompare(b, 'es'));
         console.log(`✅ Usuarios encontrados: ${users.length}`);
         
         return users;
