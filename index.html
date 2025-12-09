@@ -135,10 +135,21 @@
                     </h3>
                     
                     <div class="report-buttons-container">
-                        <button type="button" class="special-report-btn" id="btn-reporte-horas">
-                            📅 Reporte de Horas por Día
-                            <small>Calcula horas trabajadas por día en formato calendario</small>
-                        </button>
+						<div style="display: flex; flex-direction: column; gap: 8px; align-items: stretch;">
+						    <button type="button" class="special-report-btn" id="btn-reporte-horas">
+						        📅 Reporte de Asistencias por Día
+						        <small>Muestra tipos de registro (E/S/P/F/N/O) por día en formato calendario</small>
+						    </button>
+						    <div class="checkbox-item" style="padding: 8px 12px; margin: 0; background: #f0f4f8; border: 1px solid #ccc;">
+						        <input type="checkbox" id="checkbox-mes-completo" style="transform: scale(1.1);">
+						        <label for="checkbox-mes-completo" style="margin: 0; font-size: 13px; color: #333;">
+						            <strong>Generar mes completo</strong>
+						            <small style="display: block; color: #666; font-weight: normal;">
+						                Si está marcado, genera todo el mes de la fecha "Hasta" seleccionada
+						            </small>
+						        </label>
+						    </div>
+						</div>
                         
                         <button type="button" class="special-report-btn excel-btn" id="btn-export-excel">
                             📊 Exportar Todo a Excel
